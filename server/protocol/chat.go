@@ -1,14 +1,16 @@
 package protocol
 
 import (
-	"encoding/binary"
 	"fmt"
-	"time"
+	"log"
+	"net/http"
 	"strings"
+	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/bwmarrin/discordgo"
-	"github.com/rumblefrog/source-chat-relay/server/packet"
 	"github.com/rumblefrog/source-chat-relay/server/config"
+	"github.com/rumblefrog/source-chat-relay/server/packet"
 )
 
 type IdentificationType uint8
@@ -89,23 +91,64 @@ func (m *ChatMessage) Plain() string {
 }
 
 func (m *ChatMessage) Embed() *discordgo.MessageEmbed {
-	idColorBytes := []byte(m.ID)
-
+	// Generate Random colors by SteamID for Embed.
+	// idColorBytes := []byte(m.ID)
 	// Convert to an int with length of 6
-	color := int(binary.LittleEndian.Uint32(idColorBytes[len(idColorBytes)-6:])) / 10000
+	// color := int(binary.LittleEndian.Uint32(idColorBytes[len(idColorBytes)-6:])) / 10000
+
+	steamURL := m.IDType.FormatURL(m.ID)
+
+	steamProfileURL := SteamProfileScrape(steamURL)
 
 	return &discordgo.MessageEmbed{
-		Color:       color,
+		Color:       16711784,
 		Description: m.Message,
 		Timestamp:   time.Now().Format(time.RFC3339),
 		Author: &discordgo.MessageEmbedAuthor{
-			Name: m.Username,
+			IconURL: func() string {
+				if steamProfileURL != "" {
+					return steamProfileURL
+				} else {
+					// Question mark avatars from Steam.
+					return "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+				}
+			}(),
+			Name: fmt.Sprintf("%s (%s)", m.Username, m.ID),
 			URL:  m.IDType.FormatURL(m.ID),
 		},
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: fmt.Sprintf("%s | %s", m.BaseMessage.EntityName, m.ID),
+			Text: m.BaseMessage.EntityName,
 		},
 	}
+}
+
+func SteamProfileScrape(steamURL string) string {
+	// Request the HTML page
+	var src string
+	res, err := http.Get(steamURL)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		log.Fatalf("Failed to fetch data: %d %s", res.StatusCode, res.Status)
+	}
+
+	// Load the HTML document
+	doc, _ := goquery.NewDocumentFromReader(res.Body)
+
+	doc.Find(".playerAvatarAutoSizeInner img").Each(func(i int, s *goquery.Selection) {
+		src, _ = s.Attr("src")
+
+		if strings.Contains(src, "steamcommunity/public/images/items/") {
+			src = ""
+		}
+	})
+
+	return src
 }
 
 func ParseIdentificationType(t uint8) IdentificationType {

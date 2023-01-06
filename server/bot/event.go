@@ -1,11 +1,12 @@
 package bot
 
 import (
-	"strings"
-
 	"github.com/Necroforger/dgrouter/exrouter"
 	"github.com/rumblefrog/source-chat-relay/server/protocol"
 	"github.com/rumblefrog/source-chat-relay/server/relay"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func eventCommand(ctx *exrouter.Context) {
@@ -23,11 +24,13 @@ func eventCommand(ctx *exrouter.Context) {
 		return
 	}
 
+	caser := cases.Title(language.Und, cases.NoLower)
+
 	message := &protocol.EventMessage{
 		BaseMessage: protocol.BaseMessage{
 			Type:       protocol.MessageChat,
 			SenderID:   ctx.Msg.ChannelID,
-			EntityName: strings.Title(channel.Name),
+			EntityName: caser.String(channel.Name),
 		},
 		Event: ctx.Args.Get(0),
 		Data:  ctx.Args.Get(1),

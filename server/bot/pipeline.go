@@ -30,6 +30,8 @@ func Listen() {
 					}
 				}
 			}
+		default:
+			continue
 		}
 	}
 }

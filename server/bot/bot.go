@@ -1,16 +1,17 @@
 package bot
 
 import (
-	"strings"
-
 	"github.com/Necroforger/dgrouter"
 	"github.com/Necroforger/dgrouter/exrouter"
-	"github.com/sirupsen/logrus"
-
 	"github.com/bwmarrin/discordgo"
 	"github.com/rumblefrog/source-chat-relay/server/config"
+	"github.com/rumblefrog/source-chat-relay/server/emoji"
 	"github.com/rumblefrog/source-chat-relay/server/protocol"
 	"github.com/rumblefrog/source-chat-relay/server/relay"
+	"github.com/sirupsen/logrus"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var RelayBot *discordgo.Session
@@ -46,6 +47,14 @@ func Initialize() {
 		err := router.FindAndExecute(session, "r/", session.State.User.ID, m.Message)
 
 		if err == dgrouter.ErrCouldNotFindRoute {
+			res, err := emoji.DecodeEmojisToAliases(m.Content)
+
+			if err != nil {
+				logrus.Fatal(err.Error())
+			}
+
+			m.Content = res
+
 			channel, err := session.Channel(m.ChannelID)
 
 			if err != nil {
@@ -66,11 +75,13 @@ func Initialize() {
 				displayname = member.Nick
 			}
 
+			caser := cases.Title(language.Und, cases.NoLower)
+
 			message := &protocol.ChatMessage{
 				BaseMessage: protocol.BaseMessage{
 					Type:       protocol.MessageChat,
 					SenderID:   m.ChannelID,
-					EntityName: strings.Title(channel.Name),
+					EntityName: caser.String(channel.Name),
 				},
 				IDType:   protocol.IdentificationDiscord,
 				ID:       m.Author.ID,

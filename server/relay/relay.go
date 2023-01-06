@@ -74,39 +74,40 @@ func (r *Relay) StartRouting() {
 			return
 		}
 
-		select {
-		case message := <-r.Router:
-			if filter.IsInFilter(message.Content()) {
+		// select {
+		// case
+		message := <-r.Router
+		if filter.IsInFilter(message.Content()) {
+			continue
+		}
+
+		r.clientMu.Lock()
+
+		// Iterate connected clients
+		for client := range r.Clients {
+			tEntity, err := entity.GetEntity(client.ID)
+
+			if err != nil {
 				continue
 			}
 
-			r.clientMu.Lock()
-
-			// Iterate connected clients
-			for client := range r.Clients {
-				tEntity, err := entity.GetEntity(client.ID)
-
-				if err != nil {
-					continue
-				}
-
-				if client.ID != message.Author() &&
-					tEntity.CanReceiveType(message.Type()) &&
-					tEntity.ReceiveIntersectsWith(entity.DeliverableSendChannels(message)) {
-					select {
-					case client.Data <- message.Marshal():
-					default:
-						close(client.Data)
-						delete(r.Clients, client)
-					}
+			if client.ID != message.Author() &&
+				tEntity.CanReceiveType(message.Type()) &&
+				tEntity.ReceiveIntersectsWith(entity.DeliverableSendChannels(message)) {
+				select {
+				case client.Data <- message.Marshal():
+				default:
+					close(client.Data)
+					delete(r.Clients, client)
 				}
 			}
-
-			r.clientMu.Unlock()
-
-			// Push to bot channel and it'll iterate Discord channels
-			r.Bot <- message
 		}
+
+		r.clientMu.Unlock()
+
+		// Push to bot channel and it'll iterate Discord channels
+		r.Bot <- message
+		// }
 	}
 }
 
@@ -166,21 +167,19 @@ func (r *Relay) ListenClientSend(c *RelayClient) {
 	defer c.Socket.Close()
 
 	for {
-		select {
-		case message, ok := <-c.Data:
-			if !ok {
-				// Exit for loop, execute the defer
-				return
-			}
-
-			b, _ := c.Socket.Write(message)
-
-			r.Statistics.Outgoing.ByteCount += b
-			r.Statistics.Outgoing.MessageCount++
-
-			c.Statistics.Outgoing.ByteCount += b
-			c.Statistics.Outgoing.MessageCount++
+		message, ok := <-c.Data
+		if !ok {
+			// Exit for loop, execute the defer
+			return
 		}
+
+		b, _ := c.Socket.Write(message)
+
+		r.Statistics.Outgoing.ByteCount += b
+		r.Statistics.Outgoing.MessageCount++
+
+		c.Statistics.Outgoing.ByteCount += b
+		c.Statistics.Outgoing.MessageCount++
 	}
 }
 

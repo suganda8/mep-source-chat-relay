@@ -567,7 +567,11 @@ public void HandlePackets(const char[] sBuffer, int iSize)
 			if (SupportsHexColor(g_evEngine))
 				CPrintToChatAll("{gold}[%s] {azure}%s{white}: {grey}%s", sEntity, sName, sMessage);
 			else
-				CPrintToChatAll("\x10[%s] \x0C%s\x01: \x08%s", sEntity, sName, sMessage);
+				// Left 4 Dead 2 Compatible
+				CPrintToChatAll("\x04[%s] \x03%s\x01 : %s", sEntity, sName, sMessage);
+
+				// TF2 Compatible
+				// CPrintToChatAll("\x10[%s] \x0C%s\x01: \x08%s", sEntity, sName, sMessage);
 		}
 		case MessageEvent:
 		{
@@ -598,7 +602,11 @@ public void HandlePackets(const char[] sBuffer, int iSize)
 			if (SupportsHexColor(g_evEngine))
 				CPrintToChatAll("{gold}[%s]{white}: {grey}%s", sEvent, sData);
 			else
-				CPrintToChatAll("\x10[%s]\x01: \x08%s", sEvent, sData);
+				// Left 4 Dead 2 Compatible
+				CPrintToChatAll("\x04[%s]\x01 : %s", sEvent, sData);
+
+				// TF2 Compatible
+				// CPrintToChatAll("\x10[%s]\x01 : \x08%s", sEvent, sData);
 		}
 		case MessageAuthenticateResponse:
 		{
