@@ -37,7 +37,7 @@ func aboutCommand(ctx *exrouter.Context) {
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:  "Forked SCR Version",
-				Value: config.SCRVER,
+				Value: config.FORKEDSCRVER,
 			},
 			{
 				Name:  "New Feature",
