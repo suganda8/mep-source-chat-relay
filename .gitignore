@@ -1,7 +1,11 @@
+# Ignore extension less files
+*
+!/**/
+!*.*
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
-server
 *.dll
 *.so
 *.dylib
