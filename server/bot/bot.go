@@ -50,10 +50,16 @@ func Initialize() {
 			res, err := emoji.DecodeEmojisToAliases(m.Content)
 
 			if err != nil {
-				logrus.Fatal(err.Error())
+				logrus.WithField("error", err).Warn("Message decode emoji failed")
+				return
 			}
 
 			m.Content = res
+
+			if m.Content == "" {
+				logrus.Error("Failed to send message, message content is empty")
+				return
+			}
 
 			channel, err := session.Channel(m.ChannelID)
 

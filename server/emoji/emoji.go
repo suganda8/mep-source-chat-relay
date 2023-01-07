@@ -5,11 +5,17 @@
 package emoji
 
 import (
-	"os"
+	"embed"
 	"regexp"
 
 	jsoniter "github.com/json-iterator/go"
 )
+
+// These are embed directive not ordinary comments
+//
+//go:embed emoji-regex.txt
+//go:embed emoji.json
+var f embed.FS
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -77,13 +83,21 @@ const (
 func DecodeEmojisToAliases(str string) (res string, err error) {
 	// os.Open require defering os.File.Close() and then io.ReadAll() to read the bytes. This behavior because opening file may not only to read but also write.
 	// On the other side, os.ReadFile only read file and pass the bytes directly.
-	emojiJson, errJson := os.ReadFile("../server/emoji/emoji.json")
+	//
+	// Note :
+	// f is variable of embed.FS. Embed package is essentially for embed file into Go binaries. Using os means file that you open must exist in binaries directory
+	// os is Package os provides a platform-independent interface to operating system functionality.
+	emojiJson, err := f.ReadFile("emoji.json")
+
+	if err != nil {
+		return "", err
+	}
 
 	// Reminder, if use the string directly to MustCompile, use "Backtick" (``) instead normal Double-quotes.
 	// regexp.MustCompile(`long-emoji-regex`)
-	emojiRegex, errRegex := os.ReadFile("../server/emoji/emoji-regex.txt")
+	emojiRegex, err := f.ReadFile("emoji-regex.txt")
 
-	if errJson != nil || errRegex != nil {
+	if err != nil {
 		return "", err
 	}
 
